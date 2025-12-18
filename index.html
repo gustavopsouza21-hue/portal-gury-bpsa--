@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gury & BPSA - Smart Fiscal System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    
+    <style>
+        :root {
+            --azul-gury: #2b4595;
+            --amarelo-gury: #f9d423;
+            --vermelho-gury: #e31d24;
+            --azul-bpsa: #1e293b;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); margin: 0; color: #334155; }
+
+        /* --- LOGIN DESIGN --- */
+        #login-screen {
+            position: fixed; width: 100%; height: 100%; background: linear-gradient(135deg, var(--azul-gury) 0%, #0f172a 100%);
+            display: flex; justify-content: center; align-items: center; z-index: 9999;
+        }
+        .login-card {
+            background: white; padding: 50px; border-radius: 24px; width: 400px; text-align: center;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+        }
+        .login-card img { width: 180px; margin-bottom: 20px; }
+        .login-card input {
+            width: 100%; padding: 15px; margin: 10px 0; border: 2px solid #e2e8f0;
+            border-radius: 12px; font-size: 16px; transition: 0.3s; box-sizing: border-box;
+        }
+        .login-card input:focus { border-color: var(--azul-gury); outline: none; }
+        .btn-login {
+            width: 100%; padding: 16px; background: var(--azul-gury); color: white;
+            border: none; border-radius: 12px; font-weight: bold; font-size: 16px;
+            cursor: pointer; margin-top: 20px; transition: 0.3s;
+        }
+        .btn-login:hover { background: var(--vermelho-gury); transform: translateY(-2px); }
+
+        /* --- HEADER & DASHBOARD --- */
+        #main-content { display: none; padding-bottom: 50px; }
+        header {
+            background: var(--branco); padding: 15px 5%; display: flex;
+            justify-content: space-between; align-items: center;
+            background: white; box-shadow: var(--shadow); position: sticky; top: 0; z-index: 100;
+        }
+        .stats-bar {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px; padding: 25px 5%;
+        }
+        .stat-item {
+            background: white; padding: 20px; border-radius: 16px; box-shadow: var(--shadow);
+            border-left: 5px solid var(--azul-gury); display: flex; align-items: center; gap: 15px;
+        }
+        .stat-item i { font-size: 24px; color: var(--azul-gury); }
+
+        /* --- TABS --- */
+        .tab-nav { display: flex; justify-content: center; gap: 10px; margin: 20px 0; }
+        .tab-link {
+            padding: 12px 35px; border-radius: 50px; border: none; font-weight: bold;
+            cursor: pointer; transition: 0.3s; background: #e2e8f0; color: #64748b;
+        }
+        .tab-link.active.gury { background: var(--azul-gury); color: white; }
+        .tab-link.active.bpsa { background: var(--azul-bpsa); color: white; }
+
+        /* --- CONTENT AREAS --- */
+        .container { max-width: 1400px; margin: 0 auto; padding: 0 5%; }
+        .upload-zone {
+            background: white; border: 3px dashed #cbd5e1; border-radius: 20px;
+            padding: 60px; text-align: center; cursor: pointer; transition: 0.3s;
+        }
+        .upload-zone:hover { border-color: var(--amarelo-gury); background: #f8fafc; }
+
+        .search-area {
+            background: white; padding: 20px; border-radius: 15px; margin: 30px 0;
+            display: flex; gap: 15px; box-shadow: var(--shadow);
+        }
+        .search-area input { flex: 1; border: 1px solid #e2e8f0; padding: 12px; border-radius: 10px; }
+
+        /* --- GRID DESIGN --- */
+        .grid-docs {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 25px; margin-top: 30px;
+        }
+        .card-doc {
+            background: white; border-radius: 18px; overflow: hidden;
+            box-shadow: var(--shadow); transition: 0.3s; border: 1px solid #f1f5f9;
+        }
+        .card-doc:hover { transform: scale(1.03); }
+        .card-doc img { width: 100%; height: 200px; object-fit: cover; cursor: pointer; }
+        .card-body { padding: 15px; position: relative; }
+        .card-body strong { display: block; color: var(--azul-gury); margin-bottom: 5px; font-size: 14px; }
+        .card-tag { font-size: 10px; background: #f1f5f9; padding: 4px 8px; border-radius: 4px; font-weight: bold; }
+
+        /* --- VIEWER --- */
+        #viewer {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95); z-index: 10000; justify-content: center; align-items: center;
+        }
+        #viewer img { max-width: 90%; max-height: 90%; border-radius: 10px; }
+        .close-view { position: absolute; top: 20px; right: 30px; color: white; font-size: 40px; cursor: pointer; }
+
+        .btn-backup {
+            background: #10b981; color: white; border: none; padding: 12px 25px;
+            border-radius: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="login-screen">
+        <div class="login-card">
+            <img src="INDUSTRIA-DE-ALIMENTOS-GURY-LTDA.webp" alt="Gury Logo">
+            <h3>Portal Inteligente Gury & BPSA</h3>
+            <p style="color: #64748b; font-size: 14px;">Controle de Notas Fiscais e Canhotos</p>
+            <input type="text" id="userIn" placeholder="Usuário (Gustavo ou Patricya)">
+            <input type="text" id="cpfIn" placeholder="Seu CPF">
+            <button class="btn-login" onclick="autenticar()">INICIAR SESSÃO</button>
+        </div>
+    </div>
+
+    <div id="main-content">
+        <header>
+            <img src="INDUSTRIA-DE-ALIMENTOS-GURY-LTDA.webp" style="height: 50px;">
+            <div style="display: flex; gap: 15px;">
+                <button class="btn-backup" onclick="exportarZip()">
+                    <i class="fas fa-file-zipper"></i> BACKUP COMPLETO (.ZIP)
+                </button>
+                <button onclick="location.reload()" style="background:none; border:none; color:var(--vermelho-gury); cursor:pointer; font-weight:bold;">Sair</button>
+            </div>
+        </header>
+
+        <div class="stats-bar">
+            <div class="stat-item">
+                <i class="fas fa-file-invoice"></i>
+                <div><small>Total de Notas</small><br><strong id="count-total">0</strong></div>
+            </div>
+            <div class="stat-item" style="border-left-color: var(--amarelo-gury);">
+                <i class="fas fa-user-edit"></i>
+                <div><small>Sessão Atual</small><br><strong id="user-display">-</strong></div>
+            </div>
+            <div class="stat-item" style="border-left-color: #10b981;">
+                <i class="fas fa-calendar-check"></i>
+                <div><small>Data de Operação</small><br><strong>18/12/2025</strong></div>
+            </div>
+        </div>
+
+        <div class="tab-nav">
+            <button class="tab-link active gury" onclick="changeTab('gury')">UNIDADE GURY</button>
+            <button class="tab-link bpsa" onclick="changeTab('bpsa')">UNIDADE BPSA</button>
+        </div>
+
+        <div class="container">
+            <div id="area-gury" class="tab-content active">
+                <div class="upload-zone" onclick="document.getElementById('fileGury').click()">
+                    <i class="fas fa-cloud-arrow-up" style="font-size: 4em; color: var(--azul-gury); margin-bottom: 20px;"></i>
+                    <h2>Importar Notas da GURY</h2>
+                    <p>Selecione centenas de arquivos de uma só vez (Canhotos Antigos ou Novos)</p>
+                    <input type="file" id="fileGury" multiple accept="image/*" hidden onchange="handleUpload(this, 'grid-gury')">
+                </div>
+                <div class="search-area">
+                    <i class="fas fa-search" style="margin-top:12px; color:#94a3b8"></i>
+                    <input type="text" placeholder="Filtrar por nome de arquivo ou código da nota..." onkeyup="filterDocs(this, 'grid-gury')">
+                </div>
+                <div class="grid-docs" id="grid-gury"></div>
+            </div>
+
+            <div id="area-bpsa" class="tab-content" style="display:none">
+                <div class="upload-zone" style="border-color: var(--azul-bpsa)" onclick="document.getElementById('fileBpsa').click()">
+                    <i class="fas fa-building-shield" style="font-size: 4em; color: var(--azul-bpsa); margin-bottom: 20px;"></i>
+                    <h2>Importar Notas da BPSA</h2>
+                    <p>Gerenciamento de canhotos e documentos BPSA</p>
+                    <input type="file" id="fileBpsa" multiple accept="image/*" hidden onchange="handleUpload(this, 'grid-bpsa')">
+                </div>
+                <div class="search-area">
+                    <i class="fas fa-search" style="margin-top:12px; color:#94a3b8"></i>
+                    <input type="text" placeholder="Buscar documentos BPSA..." onkeyup="filterDocs(this, 'grid-bpsa')">
+                </div>
+                <div class="grid-docs" id="grid-bpsa"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="viewer">
+        <span class="close-view" onclick="closeImg()">&times;</span>
+        <img id="view-img" src="">
+    </div>
+
+    <script>
+        let loggedUser = "";
+        let totalCount = 0;
+
+        function autenticar() {
+            const user = document.getElementById('userIn').value.toLowerCase();
+            const cpf = document.getElementById('cpfIn').value;
+            if((user === "gustavo" || user === "patricya") && cpf.length > 5) {
+                loggedUser = user.charAt(0).toUpperCase() + user.slice(1);
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('main-content').style.display = 'block';
+                document.getElementById('user-display').innerText = loggedUser;
+            } else {
+                alert("Usuário não autorizado. Use Gustavo ou Patricya.");
+            }
+        }
+
+        function changeTab(empresa) {
+            document.querySelectorAll('.tab-link').forEach(l => l.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+            
+            if(empresa === 'gury') {
+                document.querySelector('.tab-link.gury').classList.add('active');
+                document.getElementById('area-gury').style.display = 'block';
+            } else {
+                document.querySelector('.tab-link.bpsa').classList.add('active');
+                document.getElementById('area-bpsa').style.display = 'block';
+            }
+        }
+
+        async function handleUpload(input, targetGrid) {
+            const files = input.files;
+            const grid = document.getElementById(targetGrid);
+            
+            for (let file of files) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const card = document.createElement('div');
+                    card.className = 'card-doc';
+                    card.innerHTML = `
+                        <img src="${e.target.result}" onclick="openImg('${e.target.result}')">
+                        <div class="card-body">
+                            <strong>${file.name}</strong>
+                            <span class="card-tag"><i class="fas fa-user"></i> ${loggedUser}</span>
+                            <span class="card-tag"><i class="fas fa-clock"></i> ${new Date().toLocaleDateString()}</span>
+                        </div>
+                    `;
+                    grid.prepend(card);
+                    totalCount++;
+                    document.getElementById('count-total').innerText = totalCount;
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function openImg(src) {
+            document.getElementById('view-img').src = src;
+            document.getElementById('viewer').style.display = 'flex';
+        }
+
+        function closeImg() {
+            document.getElementById('viewer').style.display = 'none';
+        }
+
+        function filterDocs(input, gridId) {
+            const val = input.value.toLowerCase();
+            const cards = document.getElementById(gridId).getElementsByClassName('card-doc');
+            for(let card of cards) {
+                card.style.display = card.innerText.toLowerCase().includes(val) ? "" : "none";
+            }
+        }
+
+        async function exportarZip() {
+            const zip = new JSZip();
+            const images = document.querySelectorAll('.card-doc img');
+            if(images.length === 0) return alert("Nenhuma nota para exportar!");
+
+            alert("Gerando Backup de " + images.length + " arquivos. Aguarde o processamento...");
+
+            images.forEach((img, i) => {
+                const data = img.src.split(',')[1];
+                zip.file(`Gury_BPSA_Backup_${i+1}.jpg`, data, {base64: true});
+            });
+
+            const content = await zip.generateAsync({type:"blob"});
+            saveAs(content, `BACKUP_FISCAL_GURY_BPSA_${new Date().getTime()}.zip`);
+        }
+    </script>
+</body>
+</html>
